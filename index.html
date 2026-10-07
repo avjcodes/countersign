@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Countersign: the agent writes the quote, a separate check decides who signs</title>
+<meta name="description" content="A working concept. Type a deal in plain words, an agent drafts the quote, a separate check works the price out again and routes it to the people who have to approve it.">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06090d; --panel: #0d141b; --edge: #223140; --ink: #eaf1f6; --muted: #8fa1b1;
+  --route: #a9cbff; --pass: #55d6a0; --flag: #f4bb52; --fail: #ff7468;
+  --paper: #f7f5ef; --paper-ink: #10202b; --paper-muted: #55646f; --paper-line: #d5d6cf;
+  --p-pass: #0a6340; --p-flag: #8a4a00; --p-fail: #a3271f;
+  --u: 8px;
+  --display: "Bricolage Grotesque", "Segoe UI", sans-serif;
+  --body: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+body { margin: 0; color: var(--ink); font: 400 16px/1.5 var(--body); font-variant-numeric: tabular-nums; background:
+  radial-gradient(900px 520px at 68% 430px, #13263a 0, rgba(19, 38, 58, 0) 70%),
+  radial-gradient(600px 400px at 12% 0, #101c29 0, rgba(16, 28, 41, 0) 70%), var(--bg); background-repeat: no-repeat; }
+.cam { transform-origin: 0 0; }
+.wrap { max-width: 1360px; margin: 0 auto; padding: calc(var(--u)*2.5) calc(var(--u)*2) calc(var(--u)*8); }
+:focus-visible { outline: 3px solid #7fb2ff; outline-offset: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--u); }
+.brand { font: 700 14px/1 var(--display); letter-spacing: .2em; text-transform: uppercase; margin: 0; display: flex; align-items: center; gap: 10px; }
+.brand i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--route); position: relative; }
+.brand i::after { content: ""; position: absolute; left: 5px; top: 3px; width: 6px; height: 10px; border: solid var(--route); border-width: 0 2px 2px 0; transform: rotate(40deg); }
+.concept { margin: 0; font-size: 13px; color: var(--muted); border: 1px dashed #3a4c5d; border-radius: 3px; padding: 5px 10px; }
+h1 { font: 700 clamp(26px, 3.3vw, 40px)/1.08 var(--display); letter-spacing: -.02em; margin: calc(var(--u)*3) 0 calc(var(--u)*2.5); }
+h1 em { font-style: normal; color: var(--route); display: block; }
+
+/* the prompt bar */
+.prompt { display: flex; gap: var(--u); align-items: stretch; background: var(--panel); border: 1px solid var(--edge); border-radius: 14px; padding: var(--u); box-shadow: 0 0 0 1px rgba(169, 203, 255, .06), 0 24px 60px -30px #000; }
+.prompt:focus-within { border-color: #5d86bd; }
+textarea { flex: 1; min-width: 0; resize: none; border: 0; outline: 0; background: transparent; color: var(--ink); font: 500 17px/1.45 var(--body); padding: 10px 12px; min-height: 68px; }
+.btn { font: 700 15.5px/1 var(--body); color: #071019; background: var(--route); border: 1px solid var(--route); border-radius: 10px; min-height: 48px; padding: 0 calc(var(--u)*3); cursor: pointer; transition: transform .12s, background-color .12s; white-space: nowrap; }
+.btn:hover { background: #c6ddff; }
+.btn:active { transform: translateY(1px); }
+.btn.small { min-height: 44px; font-size: 14.5px; padding: 0 calc(var(--u)*2); border-radius: 999px; background: var(--paper-ink); border-color: var(--paper-ink); color: #fff; }
+.btn.small:hover { background: #24394a; }
+.btn.small.ghost { background: transparent; color: var(--paper-ink); }
+.btn.small.ghost:hover { background: #e6e4dc; }
+.under { display: flex; flex-wrap: wrap; gap: var(--u) calc(var(--u)*3); align-items: center; justify-content: space-between; margin: calc(var(--u)*1.5) 0 0; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--u); }
+.chip { font: 500 13.5px/1.2 var(--body); min-height: 44px; padding: 0 14px; border: 1px solid var(--edge); background: transparent; color: var(--muted); border-radius: 999px; cursor: pointer; transition: border-color .12s, color .12s; }
+.chip:hover { border-color: var(--route); color: var(--ink); }
+.slip { display: flex; align-items: center; gap: var(--u); font-size: 13.5px; color: var(--muted); }
+select { font: 500 14px/1 var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; min-height: 44px; padding: 0 10px; max-width: 100%; }
+
+.read { display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; margin: calc(var(--u)*2) 0 var(--u); }
+.fact { font: 500 13.5px/1 var(--body); padding: 8px 12px; border-radius: 6px; background: rgba(169, 203, 255, .1); color: var(--route); border: 1px solid rgba(169, 203, 255, .25); animation: pop .22s cubic-bezier(.2, 1.3, .4, 1) both; }
+.fact.note { color: var(--flag); background: rgba(244, 187, 82, .1); border-color: rgba(244, 187, 82, .3); }
+@keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.94); } to { opacity: 1; transform: none; } }
+
+.work { display: grid; gap: calc(var(--u)*3); grid-template-columns: 1fr; align-items: center; }
+@media (min-width: 980px) { .work { grid-template-columns: 430px minmax(0, 1fr); gap: 0; } }
+
+/* the quote sheet: paper on a dark desk */
+.sheet { position: relative; z-index: 1; background: var(--paper); color: var(--paper-ink); border-radius: 4px; padding: calc(var(--u)*3.5) calc(var(--u)*3.5) calc(var(--u)*3); min-height: 400px; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 40px 80px -40px #000, 0 0 90px -30px rgba(169, 203, 255, .35); transition: box-shadow .3s; }
+.sheet.caught { box-shadow: 0 0 0 2px var(--fail), 0 40px 80px -40px #000, 0 0 90px -20px rgba(255, 116, 104, .5); }
+.sheet-head { display: flex; justify-content: space-between; gap: var(--u); align-items: flex-start; min-height: 92px; }
+.sheet-kicker { font: 700 12px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--paper-muted); margin: 0 0 var(--u); }
+.sheet-title { font: 700 clamp(22px, 2.4vw, 29px)/1.1 var(--display); letter-spacing: -.015em; margin: 0; }
+.sheet-meta { color: var(--paper-muted); margin: 6px 0 0; font-size: 14.5px; }
+.stamp { flex: none; font: 700 14px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; padding: 9px 12px; border: 3px double currentColor; border-radius: 6px; transform: rotate(-7deg); animation: stamp .24s cubic-bezier(.2, 1.5, .4, 1) both; }
+.stamp.none { visibility: hidden; }
+.stamp.pass { color: var(--p-pass); } .stamp.flag { color: var(--p-flag); } .stamp.fail { color: var(--p-fail); }
+@keyframes stamp { from { opacity: 0; transform: rotate(-7deg) scale(1.7); } to { opacity: 1; transform: rotate(-7deg) scale(1); } }
+table.lines { width: 100%; border-collapse: collapse; margin-top: var(--u); }
+.lines th { text-align: left; font: 700 11.5px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--paper-muted); padding: var(--u) 0; border-bottom: 2px solid var(--paper-ink); }
+.lines td { padding: 10px 0; border-bottom: 1px solid var(--paper-line); vertical-align: top; font-size: 15px; }
+.lines th:not(:first-child), .lines td.num { text-align: right; padding-left: 12px; white-space: nowrap; }
+.row-in { animation: rowin .26s ease-out both; }
+@keyframes rowin { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+.sheet-how { color: var(--paper-muted); font-size: 13.5px; margin: 10px 0 0; }
+.totals { margin-top: calc(var(--u)*2.5); display: grid; gap: 4px; justify-content: end; }
+.totals div { display: flex; gap: calc(var(--u)*3); justify-content: space-between; align-items: baseline; font-size: 14.5px; }
+.totals .grand b { font: 700 clamp(24px, 2.6vw, 31px)/1 var(--display); }
+.hide { visibility: hidden; }
+.signs { margin-top: calc(var(--u)*2.5); display: grid; gap: 10px; }
+.sign { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--u); border-bottom: 1px solid var(--paper-ink); padding-bottom: var(--u); min-height: 54px; }
+.sign-who { font-weight: 700; }
+.sign-acts { display: flex; gap: var(--u); }
+.sign-mark { font: 700 22px/1 var(--display); font-style: italic; transform: rotate(-3deg); animation: stamp .24s both; }
+.sign.approved .sign-mark { color: var(--p-pass); } .sign.returned .sign-mark { color: var(--p-fail); }
+.sheet-note { color: var(--paper-muted); font-size: 14px; margin: 0; }
+.questions { margin: calc(var(--u)*3) 0; padding-left: 20px; font: 500 19px/1.4 var(--display); }
+.placeholder { color: var(--paper-muted); display: grid; place-content: center; text-align: center; min-height: 330px; font: 500 19px/1.3 var(--display); }
+.sheet.waiting .placeholder { animation: breathe 1.1s ease-in-out infinite alternate; }
+@keyframes breathe { from { opacity: .45; } to { opacity: 1; } }
+
+/* the route: the one thing on the page that draws itself */
+.route-wrap { min-width: 0; }
+#route { display: block; width: 100%; height: auto; overflow: visible; }
+#route.vertical { max-width: 340px; margin: 0 auto; }
+.ghost { fill: none; stroke: #2a3b4c; stroke-width: 2; stroke-dasharray: 3 7; stroke-linecap: round; }
+.wire { fill: none; stroke: var(--route); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .6s cubic-bezier(.4, 0, .2, 1); filter: drop-shadow(0 0 6px rgba(169, 203, 255, .7)); }
+.wire.drawn { stroke-dashoffset: 0; }
+.wire.hold { stroke: var(--flag); filter: drop-shadow(0 0 6px rgba(244, 187, 82, .6)); }
+.wire.ok { stroke: var(--pass); filter: drop-shadow(0 0 6px rgba(85, 214, 160, .6)); }
+.wire.back { stroke: var(--fail); stroke-dasharray: 1; transition-duration: .9s; filter: drop-shadow(0 0 6px rgba(255, 116, 104, .7)); }
+.back-label { fill: var(--fail); font: 700 12px var(--body); letter-spacing: .1em; text-transform: uppercase; }
+.node circle { fill: var(--bg); stroke: #3a4c5d; stroke-width: 2; transition: stroke .25s, fill .25s; }
+.node .core { fill: #3a4c5d; stroke: none; }
+.node .mark { fill: none; stroke: transparent; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.n-title { fill: var(--ink); font: 700 14px var(--body); }
+.n-sub { fill: var(--muted); font: 500 12.5px var(--body); }
+.agent.on circle { stroke: var(--route); } .agent.on .core { fill: var(--route); }
+.agent.asking circle { stroke: var(--flag); } .agent.asking .core { fill: var(--flag); }
+.gate .disc { stroke: #2a3b4c; }
+.gate.on .disc { stroke: #4a6078; }
+.seg { fill: none; stroke: #2a3b4c; stroke-width: 7; stroke-linecap: round; transition: stroke .15s; }
+.seg.pass { stroke: var(--pass); filter: drop-shadow(0 0 5px rgba(85, 214, 160, .7)); }
+.seg.flag { stroke: var(--flag); filter: drop-shadow(0 0 5px rgba(244, 187, 82, .7)); }
+.seg.fail { stroke: var(--fail); filter: drop-shadow(0 0 7px rgba(255, 116, 104, .9)); }
+.count { fill: var(--ink); font: 700 20px var(--display); }
+.gate.blocked .disc { stroke: var(--fail); fill: #2a0f0d; }
+.gate.passed .disc { fill: #0b1d18; }
+.signer { cursor: pointer; }
+.signer .hit { fill: transparent; stroke: none; }
+.signer.waiting circle:not(.hit) { stroke: var(--flag); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { stroke-width: 5; } }
+.signer.approved { cursor: default; } .signer.approved circle:not(.hit) { stroke: var(--pass); fill: #0b1d18; } .signer.approved .mark { stroke: var(--pass); }
+.signer.returned circle:not(.hit) { stroke: var(--fail); fill: #2a0f0d; }
+.signer.waiting .status { fill: var(--flag); } .signer.approved .status { fill: var(--pass); } .signer.returned .status { fill: var(--fail); }
+.sent.on circle { stroke: var(--pass); fill: #0b1d18; } .sent.on .mark { stroke: var(--pass); } .sent.on .n-title { fill: var(--pass); }
+
+.say { text-align: center; min-height: 78px; padding: 0 var(--u); }
+.caption { font: 700 clamp(19px, 2vw, 25px)/1.2 var(--display); margin: var(--u) 0 4px; }
+.caption.pass { color: var(--pass); } .caption.flag { color: var(--flag); } .caption.fail { color: var(--fail); }
+.sub { margin: 0; color: var(--muted); font-size: 15px; }
+
+.below { display: grid; gap: calc(var(--u)*4); grid-template-columns: 1fr; margin-top: calc(var(--u)*5); }
+@media (min-width: 980px) { .below { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } }
+.below h2 { font: 700 20px/1.2 var(--display); margin: 0 0 4px; }
+.below p { color: var(--muted); margin: 0 0 calc(var(--u)*2); font-size: 15px; max-width: 60ch; }
+#trail { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; font-size: 14px; min-height: 52px; }
+#trail li { display: grid; grid-template-columns: 70px 112px 1fr; gap: 12px; padding: 9px 14px; border-top: 1px solid #18232e; animation: rowin .25s ease-out both; }
+#trail li:first-child { border-top: 0; }
+#trail time { color: #627689; }
+#trail .who-check b { color: var(--flag); } #trail .who-agent b { color: var(--route); } #trail .who-rep b { color: var(--ink); } #trail b { color: var(--pass); }
+#trail:empty::after { content: "Nothing yet. Run a deal."; display: block; padding: 14px; color: #627689; }
+#rules { display: grid; gap: calc(var(--u)*2); }
+#rules h3 { font: 700 12px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+#rules ul { margin: 0; padding-left: 18px; font-size: 14.5px; color: #c9d5df; }
+.film { margin-top: calc(var(--u)*6); }
+.film h2 { font: 700 20px/1.2 var(--display); margin: 0 0 calc(var(--u)*1.5); }
+.film video { display: block; width: 100%; max-width: 960px; aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--edge); background: #04070a; }
+footer { margin-top: calc(var(--u)*5); padding-top: calc(var(--u)*3); border-top: 1px solid var(--edge); color: var(--muted); font-size: 14.5px; max-width: 72ch; }
+footer p { margin: 0 0 var(--u); }
+
+@media (max-width: 700px) {
+  .prompt { flex-direction: column; } textarea { min-height: 104px; }
+  .sheet { padding: calc(var(--u)*3) calc(var(--u)*2); }
+  #trail li { grid-template-columns: 1fr; gap: 0; } #trail time { display: none; }
+  .under { justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="cam" id="cam">
+<div class="wrap">
+  <header class="top">
+    <p class="brand"><i aria-hidden="true"></i>Countersign</p>
+    <p class="concept">A working concept. The company, the prices and the rules are made up.</p>
+  </header>
+  <h1>The agent writes the quote. <em>It does not get to approve it.</em></h1>
+
+  <form id="form" class="prompt">
+    <label class="sr" for="ask">The deal, in plain words</label>
+    <textarea id="ask" spellcheck="false" placeholder="Type a deal the way a rep would say it"></textarea>
+    <button class="btn" type="submit">Build the quote</button>
+  </form>
+  <div class="under">
+    <div class="chips" id="examples" aria-label="Example deals"></div>
+    <label class="slip">Make the agent slip <select id="slip"></select></label>
+  </div>
+  <div class="read" id="read" aria-label="What the agent understood"></div>
+
+  <main class="work">
+    <section aria-label="The quote">
+      <div class="sheet" id="sheet"><div class="placeholder">The quote lands here</div></div>
+    </section>
+    <section class="route-wrap" aria-label="The route">
+      <svg id="route" role="img" aria-label="The route a quote takes: the agent, the check, the people who sign, ready to send"></svg>
+      <div class="say" aria-live="polite">
+        <p class="caption" id="caption">Type a deal, or pick an example.</p>
+        <p class="sub" id="subcaption">Eight checks run on every draft. The agent cannot skip or edit them.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="below">
+    <section aria-label="The trail">
+      <h2>The trail</h2>
+      <p>Every step, who took it and when. If someone asks why a customer got 18% off, this is the answer.</p>
+      <ol id="trail"></ol>
+    </section>
+    <section aria-label="The rules">
+      <h2>The rules it is held to</h2>
+      <p>Printed from the same price book the code reads.</p>
+      <div id="rules"></div>
+    </section>
+  </div>
+
+  <section class="film" aria-label="The film">
+    <h2>The 43 second version</h2>
+    <video controls preload="none" poster="film-poster.jpg" src="film.mp4"></video>
+  </section>
+
+  <footer>
+    <p>How it is built: the reader, the quote builder and the check are three separate files. The check never reuses the agent's numbers. A test suite runs more than 4,000 deals through both and fails if they ever disagree.</p>
+    <p>On this page the reader is a small set of rules, so it runs in your browser with no server. In a real system a language model sits in that seat. The check stays exactly the same, which is the point.</p>
+    <p>Built by Angel Valle Jr.</p>
+  </footer>
+</div>
+</div>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
